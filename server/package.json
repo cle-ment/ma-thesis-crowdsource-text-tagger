@@ -1,0 +1,11 @@
+{
+  "name": "text-tagging-server",
+  "version": "0.1.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "~4.0.0",
+    "npmlog": "1.2.0",
+    "body-parser": "~1.0.1",
+    "mongoose": "~3.6.13"
+  }
+}
