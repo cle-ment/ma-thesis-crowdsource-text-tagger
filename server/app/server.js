@@ -148,6 +148,7 @@ router.post('/tags', function(req, res) {
   tags = []
   for (var i = 0; i < req.body.tags.length; i++) {
     if (req.body.tags[i].content != "") {
+      req.body.tags[i].content = req.body.tags[i].content.toLowerCase();
       tags.push(req.body.tags[i])
     }
   }
@@ -188,6 +189,27 @@ router.get('/tags', function(req, res) {
   })
 });
 
+// GET /api/tags/byContent/:query
+//
+//   description: Retrieve a list with all tags
+//   returns: [{ <TagObject> }, ...]
+router.get('/tags/byContent/:query', function(req, res) {
+  var regexp = new RegExp("^"+ req.params.query.toLowerCase());
+  TagSchema
+    .find({ content: regexp})
+    .limit(5)
+    .exec(function (err, tags) {
+      if (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not retrieve any tags.',
+            'details': err
+          });
+      } else {
+        res.status(200).json(tags);
+      }
+  })
+});
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!');
 });
