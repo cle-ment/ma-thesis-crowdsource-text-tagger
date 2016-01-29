@@ -58,23 +58,22 @@ app.use('/api', router);
 // ROUTES
 // =============================================================================
 
-// Test the api
-// -- GET /api
+// GET /api
+//
+//   description: Test the api
 router.get('/', function(req, res) {
   res.json({'message': 'test' });
 });
 
 // GET /api/ads/randomAd
+//
 //   description: Retrieve a random ad
 //   returns: { <AdObject> }
 router.get('/ads/randomAd', function(req, res) {
-
   // count total ads and return 'amount' random ones
   AdSchema.count({}, function(err, count){
-
     min = 0
     max = count
-
     var randomnumber = Math.floor(Math.random() * (max - min + 1)) + min;
     AdSchema.findOne({"ad_id": randomnumber}, function(error, ad) {
       res.json({'content': ad });
@@ -83,6 +82,7 @@ router.get('/ads/randomAd', function(req, res) {
 });
 
 // GET /api/chunks/byAdId/:id
+//
 //   description: Retrieve a list with all chunks for an ad
 //   params:
 //     ad_id: Number
@@ -93,6 +93,32 @@ router.get('/chunks/byAdId/:id', function(req, res) {
   })
 });
 
+// POST /api/tags/byChunkId/:id
+//
+//   description: Add a new tag to a chunk
+//   params:
+//     chunk_id: Number
+//     content: String
+//   returns: { <TagObject> }
+router.get('/tags/byChunkId/:id', function(req, res) {
+  // TODO
+});
+
+// GET /api/tags
+//
+//   description: Retrieve a list with all tags
+//   returns: [{ <TagObject> }, ...]
+router.get('/tags', function(req, res) {
+  // TODO
+});
+
+// GET /api/taggedChunks
+//
+//   description: Retrieve a list with all chunks including tags
+//   returns: [{ <ChunkObjectWithTags> }, ...]
+router.get('/tags', function(req, res) {
+  // TODO
+});
 
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!');
