@@ -81,9 +81,29 @@ router.get('/ads/randomAd', function(req, res) {
   })
 });
 
-// GET /api/chunks/byAdId/:id
+// GET /api/chunks/forRandomAd
 //
 //   description: Retrieve a list with all chunks for an ad
+//   params:
+//     ad_id: Number
+//   returns: [{ <ChunkObject> }, ...]
+router.get('/chunks/forRandomAd', function(req, res) {
+  // count total ads and return 'amount' random ones
+  AdSchema.count({}, function(err, count){
+    min = 0
+    max = count
+    var randomnumber = Math.floor(Math.random() * (max - min + 1)) + min;
+    AdSchema.findOne({"ad_id": randomnumber}, function(error, ad) {
+      ChunkSchema.find({"ad_id": ad.ad_id }, function(error, chunks) {
+        res.json({'content': chunks });
+      })
+    })
+  })
+});
+
+// GET /api/chunks/byAdId/:id
+//
+//   description: Retrieve a list with all chunks for a random ad
 //   params:
 //     ad_id: Number
 //   returns: [{ <ChunkObject> }, ...]
@@ -125,7 +145,7 @@ router.post('/tags', function(req, res) {
 router.get('/tags', function(req, res) {
   TagSchema
     .find()
-    .limit(100)
+    // .limit(100)
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(
@@ -137,14 +157,6 @@ router.get('/tags', function(req, res) {
         res.status(200).json(tags);
       }
   })
-});
-
-// GET /api/taggedChunks
-//
-//   description: Retrieve a list with all chunks including tags
-//   returns: [{ <ChunkObjectWithTags> }, ...]
-router.get('/tags', function(req, res) {
-  // TODO
 });
 
 app.listen(3000, function () {

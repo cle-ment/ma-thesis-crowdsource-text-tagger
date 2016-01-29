@@ -14,7 +14,9 @@
       $(document).ready(function() {
         $("#myTags").tagit({
           allowSpaces: true,
-          placeholderText: "Your tag(s)"
+          placeholderText: "Your tag(s)",
+          availableTags: ["requirements", "job title"],
+          autocomplete: {delay: 0, minLength: 2}
         });
       });
     </script>
