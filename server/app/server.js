@@ -1,9 +1,11 @@
 // CONSTANTS
 // =============================================================================
 var VERSION = '0.1';
-var PROJECT_NAME = 'blub';
+var PROJECT_NAME = 'thesis-data';
 var DEVELOPMENT_MODE = true;
-var STANDARD_PORT = 8081;
+var STANDARD_PORT = 3000;
+
+var STATIC_DIR = __dirname + '/../public';
 
 // MODULES
 // =============================================================================
@@ -24,10 +26,28 @@ log.level = 'verbose';
 // define express app
 var app         = express();
 
+// set static file dir for user generated files
+// such as their uploaded images
+app.use("/public", express.static(STATIC_DIR));
+
+// define port
+var port = process.env.PORT || STANDARD_PORT;
+
 // configure app to use bodyParser()
 // this will let us get the data from a POST
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+// for development mode allow CORS request
+if (DEVELOPMENT_MODE) {
+  app.all('/*', function(req, res, next) {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      next();
+  });
+  app.options('*', function(req,res,next){res.send(200);});
+}
 
 // DATABASE AND MODELS
 // =============================================================================
@@ -65,11 +85,11 @@ router.get('/', function(req, res) {
   res.json({'message': 'test' });
 });
 
-// GET /api/ads/randomAd
+// GET /api/ads/random
 //
 //   description: Retrieve a random ad
 //   returns: { <AdObject> }
-router.get('/ads/randomAd', function(req, res) {
+router.get('/ads/random', function(req, res) {
   // count total ads and return 'amount' random ones
   AdSchema.count({}, function(err, count){
     min = 0
@@ -81,13 +101,13 @@ router.get('/ads/randomAd', function(req, res) {
   })
 });
 
-// GET /api/chunks/forRandomAd
+// GET /api/chunkedAds/random
 //
 //   description: Retrieve a list with all chunks for an ad
 //   params:
 //     ad_id: Number
 //   returns: [{ <ChunkObject> }, ...]
-router.get('/chunks/forRandomAd', function(req, res) {
+router.get('/chunkedAds/random', function(req, res) {
   // count total ads and return 'amount' random ones
   AdSchema.count({}, function(err, count){
     min = 0
@@ -95,7 +115,9 @@ router.get('/chunks/forRandomAd', function(req, res) {
     var randomnumber = Math.floor(Math.random() * (max - min + 1)) + min;
     AdSchema.findOne({"ad_id": randomnumber}, function(error, ad) {
       ChunkSchema.find({"ad_id": ad.ad_id }, function(error, chunks) {
-        res.json({'content': chunks });
+        res.json({
+          'title': ad.title,
+          'chunks': chunks });
       })
     })
   })
@@ -121,21 +143,21 @@ router.get('/chunks/byAdId/:id', function(req, res) {
 //     content: String
 //   returns: { <TagObject> }
 router.post('/tags', function(req, res) {
+  // console.log(req.body.tags)
 
-  var tag = new TagSchema();
-  tag.chunk_id = req.body.chunk_id;
-  tag.content = req.body.content;
-  tag.save(function(err, tag) {
-    if (error) {
-      res.status(500).json(
-        {
-          'message': 'Could not save to database.',
-          'details': err
-        });
-    } else {
-      res.status(201).json(tag);
-    }
-  })
+  TagSchema.collection.insert(req.body.tags, function (err, docs) {
+      if (err) {
+        console.error('Could not store tags.');
+        res.status(500).json(
+          {
+            'message': 'Could not store tags.',
+            'details': err
+          });
+      } else {
+          console.info('%d tags were stored.', req.body.tags.length);
+          res.status(201).json(req.body.tags);
+      }
+    });
 });
 
 // GET /api/tags

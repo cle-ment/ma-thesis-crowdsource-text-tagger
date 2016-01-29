@@ -1,0 +1,24 @@
+<script id="chunklist" type="text/html">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <h2 style="font-family: Georgia, serif;">{{title}}</h2>
+        </div>
+    </div>
+    {{#chunks}}
+    <div class="row" style="border-top:1px dashed #e3e3e3">
+      <div class="col-sm-8" class="{{#count}}{{/count}}">
+        <p>{{{content}}}</p>
+      </div>
+      <div class="col-sm-4">
+        <div class="form-group" style="margin-top: 0.5em;">
+          <input type="hidden" value="{{chunk_id}}"
+            name="tags[{{counter}}][chunk_id]">
+          <input type="text" class="form-control"
+            name="tags[{{counter}}][content]" placeholder="Tags">
+        </div>
+      </div>
+    </div>
+    {{/chunks}}
+  </div>
+</script>
