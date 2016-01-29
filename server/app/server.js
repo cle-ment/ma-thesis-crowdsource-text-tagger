@@ -143,9 +143,16 @@ router.get('/chunks/byAdId/:id', function(req, res) {
 //     content: String
 //   returns: { <TagObject> }
 router.post('/tags', function(req, res) {
-  // console.log(req.body.tags)
 
-  TagSchema.collection.insert(req.body.tags, function (err, docs) {
+  // Throw out empty tags
+  tags = []
+  for (var i = 0; i < req.body.tags.length; i++) {
+    if (req.body.tags[i].content != "") {
+      tags.push(req.body.tags[i])
+    }
+  }
+
+  TagSchema.collection.insert(tags, function (err, docs) {
       if (err) {
         console.error('Could not store tags.');
         res.status(500).json(
@@ -154,7 +161,7 @@ router.post('/tags', function(req, res) {
             'details': err
           });
       } else {
-          console.info('%d tags were stored.', req.body.tags.length);
+          console.info('%d/%d tags were stored.', tags.length, req.body.tags.length);
           res.status(201).json(req.body.tags);
       }
     });
