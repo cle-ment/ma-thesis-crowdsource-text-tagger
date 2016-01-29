@@ -93,15 +93,29 @@ router.get('/chunks/byAdId/:id', function(req, res) {
   })
 });
 
-// POST /api/tags/byChunkId/:id
+// POST /api/tags
 //
 //   description: Add a new tag to a chunk
-//   params:
+//   body (form-data):
 //     chunk_id: Number
 //     content: String
 //   returns: { <TagObject> }
-router.get('/tags/byChunkId/:id', function(req, res) {
-  // TODO
+router.post('/tags', function(req, res) {
+
+  var tag = new TagSchema();
+  tag.chunk_id = req.body.chunk_id;
+  tag.content = req.body.content;
+  tag.save(function(err, tag) {
+    if (error) {
+      res.status(500).json(
+        {
+          'message': 'Could not save to database.',
+          'details': err
+        });
+    } else {
+      res.status(201).json(tag);
+    }
+  })
 });
 
 // GET /api/tags
@@ -109,7 +123,20 @@ router.get('/tags/byChunkId/:id', function(req, res) {
 //   description: Retrieve a list with all tags
 //   returns: [{ <TagObject> }, ...]
 router.get('/tags', function(req, res) {
-  // TODO
+  TagSchema
+    .find()
+    .limit(100)
+    .exec(function (err, tags) {
+      if (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not retrieve any tags.',
+            'details': err
+          });
+      } else {
+        res.status(200).json(tags);
+      }
+  })
 });
 
 // GET /api/taggedChunks

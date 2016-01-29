@@ -3,7 +3,7 @@ var Schema       = mongoose.Schema;
 
 var TagSchema   = new Schema({
   chunk_id: Number,
-  tag: String,
+  content: String,
   updated: { type: Date, default: Date.now }
 });
 
