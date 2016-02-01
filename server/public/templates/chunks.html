@@ -2,7 +2,7 @@
   <div class="container">
     <div class="row">
       <div class="col-md-12">
-        <h2 style="font-family: Georgia, serif;">{{title}}</h2>
+        <h2 class="jobad-title">{{title}}</h2>
         </div>
     </div>
     {{#chunks}}
@@ -15,7 +15,7 @@
           <input type="hidden" value="{{chunk_id}}"
             name="tags[{{counter}}][chunk_id]">
           <input type="text" class="form-control tagsinput"
-            name="tags[{{counter}}][content]" placeholder="Tags">
+            name="tags[{{counter}}][content]" placeholder="tags">
         </div>
       </div>
     </div>

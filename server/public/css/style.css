@@ -1,0 +1,7 @@
+@media (min-width: 768px) {
+  .container { max-width: 720px; }
+}
+.jobad-title {
+  margin-bottom: 1em;
+  font-family: Georgia, serif;
+}

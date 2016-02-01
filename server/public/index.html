@@ -27,6 +27,10 @@
     <script src="./assets/jquery-Mustache/jquery.mustache.js"></script>
     <script src="./assets/mustache/mustache.js"></script>
 
+    <!-- site-specific scripts & styles -->
+    <script src="./js/autocomplete.js"></script>
+    <link rel="stylesheet" type="text/css" href="./css/style.css">
+
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
@@ -40,18 +44,33 @@
 
       <div class="row">
         <div class="col-md-12">
-          <h1>Clemens' Thesis - Job Ad Tagger</h1>
-          <p class="lead">Describe what each paragraph is about by adding a tag
-             or keyword in the field on the right to it.</p>
+          <h1>Help me tag these job ads</h1>
+          <p class="lead">Below is a job ad split into sections.
+            Describe what each section is talking by
+            adding one or more tags or keywords to it.</p>
           <p>
-            <strong>Tips:</strong> You can ignore empty pararaphs. Don't hesitate to use the same
-            keywords / tags if you think the paragraph talks about the same
-            thing.
+            <h4>Hints</h4>
+            <ul>
+              <li>Ignore empty sections.</li>
+              <li>If sections talk about the same thing just use the same tag</li>
+            </ul>
           </p>
           <p>
-            <strong>Want another ad?</strong> If the page looks funky (broken)
-            or the ad is too long, simply reload the page to get another one.
+            <h4>Want another job ad?</h4>
+            Don't like this job ad? Too long? Click the botton below:
           </p>
+          <p>
+            <button class="btn btn-primary" type="submit"
+             id="newad">Get another job ad</button>
+          </p>
+
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12" >
+          <div class="alert alert-success" role="alert" id="message"
+            style="display:none"></div>
         </div>
       </div>
 
@@ -62,42 +81,48 @@
       <div id="jobad" style="background: #f4f4f4; margin-top: 2em; padding-top: 1em">
       </div>
 
-      <div class="container" style="padding: 2em 0">
+      <div class="container" style="padding-bottom: 2em; padding-top: 2em">
         <div class="row">
           <div class="col-md-8">
             <strong>Done?</strong> Click the save button on the right
-             to save your tags. And thanks so much!
+             to save your tags.
           </div>
           <div class="col-md-4">
-            <button type="submit" class="btn btn-default">Save my tags</button>
+            <button type="submit" class="btn btn-success">Save my tags</button>
           </div>
         </div>
       </div>
-
     </form>
 
     <script type="text/javascript">
-    $.ajax({
-      url: "http://localhost:3000/api/chunkedAds/random",
-      cache: false,
-      dataType: 'json'
+
+    getRandomJobAd();
+
+    $('#newad').click(function() {
+      getRandomJobAd();
+    });
+
+    function getRandomJobAd() {
+      $.ajax({
+        url: "http://localhost:3000/api/chunkedAds/random",
+        cache: false,
+        dataType: 'json'
       })
       .done(function( result ) {
         result.counter = 0;
         result.count = function () {
           return function (text, render) {
-              // note that counter is in the enclosing scope
-              return result.counter++;
+            // note that counter is in the enclosing scope
+            return result.counter++;
           }}
-        console.log(result)
-        $.Mustache.load('./templates/chunks.html')
+          $.Mustache.load('./templates/chunks.html')
           .done(function () {
-            $('#jobad').mustache('chunklist', result);
+            $('#jobad').mustache('chunklist', result, { method: 'html' });
             initAutoComplete();
           });
-      });
-    </script>
-    <script type="text/javascript">
+        });
+    }
+
     $( "#tagsform" ).on( "submit", function( event ) {
       event.preventDefault();
       var datastring = $("#tagsform").serialize();
@@ -106,90 +131,16 @@
             url: "http://localhost:3000/api/tags",
             data: datastring,
             success: function(data) {
-              console.log("Data sent.")
+              console.log("Data sent.");
+              getRandomJobAd();
+              $('#message').html("<p><strong>Thanks!!! &hearts;</strong>"
+                + " Your tags were saved. </p><p>Want to tag another job ad?"
+                + " That would be great! Below is a new job ad:</p>");
+              $('#message').show();
+              window.scrollTo(0, 0);
             }
         });
       });
-    </script>
-    <script>
-    function initAutoComplete () {
-      $(function() {
-
-        var cache = {};
-
-        function split( val ) {
-          return val.split( /,\s*/ );
-        }
-        function extractLast( term ) {
-         return split( term ).pop();
-        }
-
-        function getAvailableTags(term) {
-          if ( term in cache ) {
-            return cache[term];
-          } else {
-            $.getJSON( "http://localhost:3000/api/tags/byContent/" + term,
-            request, function( data, status, xhr ) {
-              console.log(data)
-              cache[ term ] = data;
-              return data;
-            });
-          }
-        }
-
-         $( ".form-control.tagsinput" )
-         // don't navigate away from the field on tab when selecting an item
-         .bind( "keydown", function( event ) {
-           if ( event.keyCode === $.ui.keyCode.TAB &&
-               $( this ).autocomplete( "instance" ).menu.active ) {
-             event.preventDefault();
-           }
-         })
-
-        $( ".form-control.tagsinput" ).autocomplete({
-          autoFocus: true,
-          minLength: 2,
-          source: function( request, response ) {
-            // take the last term
-            var term = extractLast( request.term );
-            if ( term in cache ) {
-              response( cache[ term ] );
-              return;
-            } else {
-              $.getJSON( "http://localhost:3000/api/tags/byContent/" + term,
-              request, function( data, status, xhr ) {
-                console.log(data)
-                cache[ term ] = data;
-                response( data );
-              });
-            }
-          },
-          search: function() {
-            // custom minLength
-            var term = extractLast( this.value );
-            if ( term.length < 2 ) {
-              return false;
-            }
-          },
-          focus: function() {
-            // prevent value inserted on focus
-            return false;
-          },
-          select: function( event, ui ) {
-            var terms = split( this.value );
-            // remove the current input
-            terms.pop();
-            // add the selected item
-            terms.push( ui.item.value );
-            // add placeholder to get the comma-and-space at the end
-            terms.push( "" );
-            this.value = terms.join( ", " );
-            return false;
-          }
-        });
-      });
-    }
-
     </script>
   </body>
 </html>
