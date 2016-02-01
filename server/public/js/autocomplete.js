@@ -42,7 +42,7 @@ function initAutoComplete () {
           response( cache[ term ] );
           return;
         } else {
-          $.getJSON( "http://localhost:3000/api/tags/byContent/" + term,
+          $.getJSON( "http://localhost:8082/api/tags/byContent/" + term,
           request, function( data, status, xhr ) {
             console.log(data)
             cache[ term ] = data;

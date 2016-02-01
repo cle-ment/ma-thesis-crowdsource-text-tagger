@@ -3,7 +3,7 @@
 var VERSION = '0.1';
 var PROJECT_NAME = 'thesis-data';
 var DEVELOPMENT_MODE = true;
-var STANDARD_PORT = 3000;
+var STANDARD_PORT = 8082;
 
 var STATIC_DIR = __dirname + '/../public';
 
@@ -29,7 +29,7 @@ var app         = express();
 
 // set static file dir for user generated files
 // such as their uploaded images
-app.use("/public", express.static(STATIC_DIR));
+app.use("/jobad-tagger", express.static(STATIC_DIR));
 
 // define port
 var port = process.env.PORT || STANDARD_PORT;
@@ -177,6 +177,7 @@ router.post('/tags', function(req, res) {
     promises.push(deferred)
   }
 
+  // when all tags were successfully inserted give a response
   q.all(promises)
   .spread(function () {
     console.info('%d/%d tags were stored.', tags.length, req.body.tags.length);
@@ -239,6 +240,7 @@ router.get('/tags/byContent/:query', function(req, res) {
       }
   })
 });
-app.listen(3000, function () {
-  console.log('Example app listening on port 3000!');
+app.listen(port, function () {
+  console.log(PROJECT_NAME + ' v' + VERSION + ' app listening on port '
+    + port + '.');
 });
