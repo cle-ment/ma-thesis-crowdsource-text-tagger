@@ -2,8 +2,8 @@ var mongoose     = require('mongoose');
 var Schema       = mongoose.Schema;
 
 var TagSchema   = new Schema({
-  chunk_id: Number,
   content: String,
+  chunk_ids: [String],
   updated: { type: Date, default: Date.now }
 });
 

@@ -14,6 +14,7 @@ var bodyParser  = require('body-parser');
 var log         = require('npmlog') // for logging
 var fs          = require('fs');
 var mongoose    = require('mongoose');
+var q           = require('q');
 
 // LOGGING
 // =============================================================================
@@ -144,28 +145,51 @@ router.get('/chunks/byAdId/:id', function(req, res) {
 //   returns: { <TagObject> }
 router.post('/tags', function(req, res) {
 
-  // Throw out empty tags
+  // Throw out empty tags and split multiple tags by comma
   tags = []
   for (var i = 0; i < req.body.tags.length; i++) {
     if (req.body.tags[i].content != "") {
-      req.body.tags[i].content = req.body.tags[i].content.toLowerCase();
-      tags.push(req.body.tags[i])
+      req.body.tags[i].content = req.body.tags[i].content.replace(/,\s*$/, "");
+      split_tags = req.body.tags[i].content.toLowerCase().split(', ');
+      for (var j = 0; j < split_tags.length; j++) {
+        var appendTag = {}
+        appendTag.chunk_id = req.body.tags[i].chunk_id;
+        appendTag.content = split_tags[j]
+        tags.push(appendTag)
+      }
     }
   }
 
-  TagSchema.collection.insert(tags, function (err, docs) {
-      if (err) {
-        console.error('Could not store tags.');
-        res.status(500).json(
-          {
-            'message': 'Could not store tags.',
-            'details': err
-          });
-      } else {
-          console.info('%d/%d tags were stored.', tags.length, req.body.tags.length);
-          res.status(201).json(req.body.tags);
-      }
+  // insert or update each tag with the new chunk_ids
+  promises = []
+  for (var i = 0; i < tags.length; i++) {
+    var deferred = q.defer();
+    var tag = tags[i];
+    TagSchema.findOneAndUpdate({content: tag.content},
+      { updated: Date.now(), $addToSet: { chunk_ids: tag.chunk_id } },
+      {upsert: true}, function (err, doc) {
+        if (err) {
+          deferred.reject(err);
+        } else {
+          deferred.resolve(doc);
+        }
     });
+    promises.push(deferred)
+  }
+
+  q.all(promises)
+  .spread(function () {
+    console.info('%d/%d tags were stored.', tags.length, req.body.tags.length);
+    res.status(201).json(tags.length + '/' + req.body.tags.length
+    + ' tags were stored.');
+  }, function (err) {
+    res.status(500).json(
+      {
+        'message': 'Could not upsert tags.',
+        'details': err
+      });
+  });
+
 });
 
 // GET /api/tags
@@ -197,7 +221,7 @@ router.get('/tags/byContent/:query', function(req, res) {
   var regexp = new RegExp("^"+ req.params.query.toLowerCase());
   TagSchema
     .find({ content: regexp})
-    .limit(5)
+    .limit()
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(
@@ -206,7 +230,12 @@ router.get('/tags/byContent/:query', function(req, res) {
             'details': err
           });
       } else {
-        res.status(200).json(tags);
+        response = []
+        for (var i = 0; i < tags.length; i++) {
+          response.push(tags[i].content);
+        }
+        console.log(response);
+        res.status(200).json(response);
       }
   })
 });
