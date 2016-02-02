@@ -102,13 +102,33 @@ router.get('/ads/random', function(req, res) {
   })
 });
 
-// GET /api/chunkedAds/random
+// GET /api/chunks/byId/:id
+//
+//   description: Retrieve a list with all chunks
+//   params:
+//     ad_id: Number
+//   returns: [{ <ChunkObject> }, ...]
+router.get('/chunks/byId/:id', function(req, res) {
+  ChunkSchema.find({_id: req.params.id }, function(err, chunks) {
+    if (err) {
+      res.status(500).json(
+        {
+          'message': 'Could not retrieve any chunks.',
+          'details': err
+        });
+    } else {
+      res.status(200).json(chunks);
+    }
+  })
+});
+
+// GET /api/chunks/byAdId/random
 //
 //   description: Retrieve a list with all chunks for an ad
 //   params:
 //     ad_id: Number
 //   returns: [{ <ChunkObject> }, ...]
-router.get('/chunkedAds/random', function(req, res) {
+router.get('/chunks/byAdId/random', function(req, res) {
   // count total ads and return 'amount' random ones
   AdSchema.count({}, function(err, count){
     min = 0
@@ -126,7 +146,7 @@ router.get('/chunkedAds/random', function(req, res) {
 
 // GET /api/chunks/byAdId/:id
 //
-//   description: Retrieve a list with all chunks for a random ad
+//   description: Retrieve a list with all chunks for one ad
 //   params:
 //     ad_id: Number
 //   returns: [{ <ChunkObject> }, ...]
@@ -160,13 +180,13 @@ router.post('/tags', function(req, res) {
     }
   }
 
-  // insert or update each tag with the new chunk_ids
+  // insert or update each tag with the new _chunks
   promises = []
   for (var i = 0; i < tags.length; i++) {
     var deferred = q.defer();
     var tag = tags[i];
     TagSchema.findOneAndUpdate({content: tag.content},
-      { updated: Date.now(), $addToSet: { chunk_ids: tag.chunk_id } },
+      { updated: Date.now(), $addToSet: { _chunks: tag.chunk_id } },
       {upsert: true}, function (err, doc) {
         if (err) {
           deferred.reject(err);
@@ -216,7 +236,9 @@ router.get('/tags', function(req, res) {
 
 // GET /api/tags/byContent/:query
 //
-//   description: Retrieve a list with all tags
+//   description: Retrieve a list with all tags matching the query
+//   params:
+//     query: String
 //   returns: [{ <TagObject> }, ...]
 router.get('/tags/byContent/:query', function(req, res) {
   var regexp = new RegExp("^"+ req.params.query.toLowerCase());
@@ -240,6 +262,31 @@ router.get('/tags/byContent/:query', function(req, res) {
       }
   })
 });
+
+
+// GET /api/populatedTags
+//
+//   description: Retrieve a list with all tags
+//   returns: [{ <TagObject> }, ...]
+router.get('/populatedTags', function(req, res) {
+  TagSchema
+    .find()
+    // .limit(100)
+    .populate('_chunks')
+    .exec(function (err, tags) {
+      if (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not retrieve any tags.',
+            'details': err
+          });
+      } else {
+        res.status(200).json(tags);
+      }
+  })
+});
+
+
 app.listen(port, function () {
   console.log(PROJECT_NAME + ' v' + VERSION + ' app listening on port '
     + port + '.');

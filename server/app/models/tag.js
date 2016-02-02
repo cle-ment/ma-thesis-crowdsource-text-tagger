@@ -3,7 +3,7 @@ var Schema       = mongoose.Schema;
 
 var TagSchema   = new Schema({
   content: String,
-  chunk_ids: [String],
+  _chunks: [{ type: Schema.Types.ObjectId, ref: 'Chunk' }],
   updated: { type: Date, default: Date.now }
 });
 

@@ -104,7 +104,7 @@
 
     function getRandomJobAd() {
       $.ajax({
-        url: "http://localhost:8082/api/chunkedAds/random",
+        url: "http://localhost:8082/api/chunks/byAdId/random",
         cache: false,
         dataType: 'json'
       })
