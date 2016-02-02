@@ -46,7 +46,7 @@
         <div class="col-md-12">
           <h1>Help me tag these job ads</h1>
           <p class="lead">Below is a job ad split into sections.
-            Describe what each section is talking by
+            Describe what each section is about by
             adding one or more tags or keywords to it.</p>
           <p>
             <h4>Hints</h4>
@@ -104,7 +104,7 @@
 
     function getRandomJobAd() {
       $.ajax({
-        url: "http://localhost:8082/api/chunks/byAdId/random",
+        url: "http://" + window.location.hostname + ":8082/api/chunks/byAdId/random",
         cache: false,
         dataType: 'json'
       })
@@ -128,7 +128,7 @@
       var datastring = $("#tagsform").serialize();
         $.ajax({
             type: "POST",
-            url: "http://localhost:8082/api/tags",
+            url: "http://" + window.location.hostname + ":8082/api/tags",
             data: datastring,
             success: function(data) {
               console.log("Data sent.");

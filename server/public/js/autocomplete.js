@@ -10,27 +10,14 @@ function initAutoComplete () {
      return split( term ).pop();
     }
 
-    function getAvailableTags(term) {
-      if ( term in cache ) {
-        return cache[term];
-      } else {
-        $.getJSON( "http://localhost:3000/api/tags/byContent/" + term,
-        request, function( data, status, xhr ) {
-          console.log(data)
-          cache[ term ] = data;
-          return data;
-        });
+    $( ".form-control.tagsinput" )
+    // don't navigate away from the field on tab when selecting an item
+    .bind( "keydown", function( event ) {
+      if ( event.keyCode === $.ui.keyCode.TAB &&
+        $( this ).autocomplete( "instance" ).menu.active ) {
+          event.preventDefault();
       }
-    }
-
-     $( ".form-control.tagsinput" )
-     // don't navigate away from the field on tab when selecting an item
-     .bind( "keydown", function( event ) {
-       if ( event.keyCode === $.ui.keyCode.TAB &&
-           $( this ).autocomplete( "instance" ).menu.active ) {
-         event.preventDefault();
-       }
-     })
+    })
 
     $( ".form-control.tagsinput" ).autocomplete({
       autoFocus: true,
@@ -42,7 +29,8 @@ function initAutoComplete () {
           response( cache[ term ] );
           return;
         } else {
-          $.getJSON( "http://localhost:8082/api/tags/byContent/" + term,
+          $.getJSON( "http://" + window.location.hostname
+            + ":8082/api/tags/byContent/" + term,
           request, function( data, status, xhr ) {
             console.log(data)
             cache[ term ] = data;
