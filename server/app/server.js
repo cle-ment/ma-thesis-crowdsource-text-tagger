@@ -2,7 +2,7 @@
 // =============================================================================
 var VERSION = '0.1';
 var PROJECT_NAME = 'thesis-data';
-var DEVELOPMENT_MODE = true;
+var DEVELOPMENT_MODE = false;
 var STANDARD_PORT = 8082;
 
 var STATIC_DIR = __dirname + '/../public';
@@ -42,10 +42,12 @@ app.use(bodyParser.json());
 // for development mode allow CORS request
 if (DEVELOPMENT_MODE) {
   app.all('/*', function(req, res, next) {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      next();
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers',
+               'Content-Type, X-Requested-With');
+    res.header('Access-Control-Allow-Methods',
+               'GET, POST, PUT, DELETE, OPTIONS');
+    next();
   });
   app.options('*', function(req,res,next){res.send(200);});
 }
@@ -257,7 +259,6 @@ router.get('/tags/byContent/:query', function(req, res) {
         for (var i = 0; i < tags.length; i++) {
           response.push(tags[i].content);
         }
-        console.log(response);
         res.status(200).json(response);
       }
   })
