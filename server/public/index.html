@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
 
@@ -47,12 +47,24 @@
           <h1>Help me tag these job ads</h1>
           <p class="lead">Below is a job ad split into sections.
             Describe what each section is about by
-            adding one or more tags or keywords to it.</p>
+            adding one or more tags/keywords to it.
+          </p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12" >
+          <div class="alert alert-success" role="alert" id="message"
+            style="display:none"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12" >
           <p>
             <h4>Hints</h4>
             <ul>
               <li>Ignore empty sections.</li>
-              <li>If sections talk about the same thing just use the same tag</li>
+              <li>Add multiple tags if the section talks about several things</li>
+              <li>Don't hesitate to use the same tag several times</li>
             </ul>
           </p>
           <p>
@@ -63,14 +75,6 @@
             <button class="btn btn-primary" type="submit"
              id="newad">Get another job ad</button>
           </p>
-
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12" >
-          <div class="alert alert-success" role="alert" id="message"
-            style="display:none"></div>
         </div>
       </div>
 
@@ -95,6 +99,8 @@
     </form>
 
     <script type="text/javascript">
+
+    var taggedAdsCounter = 0;
 
     getRandomJobAd();
 
@@ -131,12 +137,28 @@
             url: "http://" + window.location.hostname + ":8082/api/tags",
             data: datastring,
             success: function(data) {
+              taggedAdsCounter += 1;
               console.log("Data sent.");
               getRandomJobAd();
-              $('#message').html("<p><strong>Thanks!!! &hearts;</strong>"
-                + " Your tags were saved. </p><p>Want to tag another job ad?"
-                + " That would be great! Below is a new job ad:</p>");
-              $('#message').show();
+
+              $('#message').hide();
+              if (taggedAdsCounter == 1) {
+                $('#message').html("<p><strong>Thanks!!! &hearts;</strong>"
+                  + " Your tags were saved. </p><p>Want to tag another job ad?"
+                  + " That would be great! There's a new one ready "
+                  + "for you below.</p>");
+                $('#message').show();
+              } else if (taggedAdsCounter <= 5) {
+                $('#message').html("<p><strong>Thanks again! &hearts;</strong>"
+                  + " Your tags were saved. </p><p>Another one? It's ready "
+                  + "for you below.</p>");
+                $('#message').show();
+              } else if (taggedAdsCounter > 5) {
+                $('#message').html("<p><strong>Wow you're awesome!!!</strong>"
+                  + " Everything is saved. </p><p>Still Another one? "
+                  + "As always ready for you below.</p>");
+                $('#message').show();
+              }
               window.scrollTo(0, 0);
             }
         });
