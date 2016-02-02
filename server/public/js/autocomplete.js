@@ -34,7 +34,7 @@ function initAutoComplete () {
 
     $( ".form-control.tagsinput" ).autocomplete({
       autoFocus: true,
-      minLength: 2,
+      minLength: 3,
       source: function( request, response ) {
         // take the last term
         var term = extractLast( request.term );
@@ -53,7 +53,7 @@ function initAutoComplete () {
       search: function() {
         // custom minLength
         var term = extractLast( this.value );
-        if ( term.length < 2 ) {
+        if ( term.length < 3 ) {
           return false;
         }
       },
