@@ -29,12 +29,16 @@
 
     <!-- site-specific scripts & styles -->
     <script src="./js/autocomplete.js"></script>
+    <script src="./js/getRandomAd.js"></script>
+    <script src="./js/formSubmit.js"></script>
     <link rel="stylesheet" type="text/css" href="./css/style.css">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js">
+      </script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js">
+      </script>
     <![endif]-->
 
   </head>
@@ -57,6 +61,56 @@
             style="display:none"></div>
         </div>
       </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <h4>Example</h4>
+          <p><a href="" id="toggleExample">Show example</a></p>
+          <div id="example" style="display: none;">
+            <div class="row" style="background-color: #f4f4f4">
+              <div class="col-sm-8">
+                <p>We are now looking for a Salesforce Architect to guide our
+                  Salesforce development activities. Salesforce Architect
+                  ensures that developers are building a solid long-term
+                  architecture, following Metso’s technical standards and best
+                  practices.</p>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-group" style="margin-top: 0.5em;">
+                  <input type="text" class="form-control"
+                    disabled="true" value="job title, introduction, role">
+                </div>
+              </div>
+            </div>
+            <div class="row"
+              style="border-top:1px dashed #e3e3e3; background-color: #f4f4f4">
+              <div class="col-sm-8">
+                <p>The key responsibilities in the position:</p>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-group" style="margin-top: 0.5em;">
+                  <input type="text" class="form-control"
+                    disabled="true" value="heading, responsibilities">
+                </div>
+              </div>
+            </div>
+            <div class="row"
+              style="border-top:1px dashed #e3e3e3; background-color: #f4f4f4">
+              <div class="col-sm-8">
+                <p>- Responsible for the Salesforce data architecture and
+                  integrations of the production and sandbox environments</p>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-group" style="margin-top: 0.5em;">
+                  <input type="text" class="form-control"
+                    disabled="true" value="responsibilities">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row">
         <div class="col-md-12" >
           <p>
@@ -83,7 +137,7 @@
 
     <form id="tagsform">
 
-      <div id="jobad" style="background: #f4f4f4; margin-top: 2em; padding-top: 1em">
+      <div id="jobad">
       </div>
 
       <div class="container" style="padding-bottom: 2em; padding-top: 2em">
@@ -99,71 +153,33 @@
       </div>
     </form>
 
+    <!-- end body -->
+
     <script type="text/javascript">
+      // initialize interface
+      $(function() {
 
-    var taggedAdsCounter = 0;
+        // when page loaded get first ad
+        getRandomJobAd();
 
-    getRandomJobAd();
-
-    $('#newad').click(function() {
-      getRandomJobAd();
-    });
-
-    function getRandomJobAd() {
-      $.ajax({
-        url: "http://" + window.location.hostname + ":8082/api/chunks/byAdId/random",
-        cache: false,
-        dataType: 'json'
-      })
-      .done(function( result ) {
-        result.counter = 0;
-        result.count = function () {
-          return function (text, render) {
-            // note that counter is in the enclosing scope
-            return result.counter++;
-          }}
-          $.Mustache.load('./templates/chunks.html')
-          .done(function () {
-            $('#jobad').mustache('chunklist', result, { method: 'html' });
-            initAutoComplete();
-          });
+        // when "new ad" button clicked get another ad
+        $('#newad').click(function() {
+          getRandomJobAd();
         });
-    }
 
-    $( "#tagsform" ).on( "submit", function( event ) {
-      event.preventDefault();
-      var datastring = $("#tagsform").serialize();
-        $.ajax({
-            type: "POST",
-            url: "http://" + window.location.hostname + ":8082/api/tags",
-            data: datastring,
-            success: function(data) {
-              taggedAdsCounter += 1;
-              console.log("Data sent.");
-              getRandomJobAd();
-
-              $('#message').hide();
-              if (taggedAdsCounter == 1) {
-                $('#message').html("<p><strong>Thanks!!! &hearts;</strong>"
-                  + " Your tags were saved. </p><p>Want to tag another job ad?"
-                  + " That would be great! There's a new one ready "
-                  + "for you below.</p>");
-                $('#message').show();
-              } else if (taggedAdsCounter <= 5) {
-                $('#message').html("<p><strong>Thanks again! &hearts;</strong>"
-                  + " Your tags were saved. </p><p>Another one? It's ready "
-                  + "for you below.</p>");
-                $('#message').show();
-              } else if (taggedAdsCounter > 5) {
-                $('#message').html("<p><strong>Wow you're awesome!!!</strong>"
-                  + " Everything is saved. </p><p>Still Another one? "
-                  + "As always ready for you below.</p>");
-                $('#message').show();
-              }
-              window.scrollTo(0, 0);
-            }
-        });
       });
     </script>
+    <script type="text/javascript">
+    // Toggle the example
+    $(function() {
+      $("#toggleExample").click(function (e) {
+        e.preventDefault();
+        $("#example").toggle();
+        var text = $('#toggleExample').text();
+        $('#toggleExample').text(
+          text == "Hide example" ? "Show example" : "Hide example");
+        });
+      });
+      </script>
   </body>
 </html>

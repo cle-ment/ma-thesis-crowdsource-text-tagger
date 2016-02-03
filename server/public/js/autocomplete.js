@@ -1,3 +1,4 @@
+// inits jquery-ui autocomplete
 function initAutoComplete () {
   $(function() {
 
@@ -32,7 +33,6 @@ function initAutoComplete () {
           $.getJSON( "http://" + window.location.hostname
             + ":8082/api/tags/byContent/" + term,
           request, function( data, status, xhr ) {
-            console.log(data)
             cache[ term ] = data;
             response( data );
           });
