@@ -1,6 +1,6 @@
 // CONSTANTS
 // =============================================================================
-var VERSION = '0.1';
+var VERSION = '0.1.0';
 var PROJECT_NAME = 'thesis-tagger';
 var DEVELOPMENT_MODE = false;
 var STANDARD_PORT = 8082;
@@ -21,7 +21,7 @@ var q           = require('q');
 
 log.level = 'verbose';
 
-// EXPRESS
+// EXPRESS SETUP
 // =============================================================================
 
 // define express app
@@ -81,41 +81,128 @@ app.use('/api', router);
 // ROUTES
 // =============================================================================
 
-// GET /api
-//
-//   description: Test the api
+// API documented with http://apidocjs.com
+// to generate documentation run:
+//    $> apidoc -i app/ -o ./public/apidoc/
+
+/**
+ * @api {get} / Test the API
+ * @apiName Test
+ * @apiGroup Test
+ *
+ * @apiSuccess {String} message API status message
+ */
 router.get('/', function(req, res) {
-  res.json({'message': 'test' });
+  res.json({'message': PROJECT_NAME + ' v' + VERSION
+            + ' API is up and running.' });
 });
 
-// GET /api/ads/random
-//
-//   description: Retrieve a random ad
-//   returns: { <AdObject> }
+/**
+ * @api {get} /ads/:id Get a job ad by id
+ * @apiName getAd
+ * @apiGroup Ads
+ *
+ * @apiParam {Number} id Unique but pre-generated "ad_id"
+ *
+ * @apiSuccess {Object} ad Job ad object
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  {
+ *    "_id": "56b0c8e0ec9666697274faf0",
+ *    "ad_id": 5524,
+ *    "title": "Senior Pricing Economist",
+ *    "content": "<p>We are now looking for a <strong>(Senior) Pricing
+ *                Economist</strong> to carry out price optimisation analysis
+ *                and to make recommendations for Lumia devices pricing [...]"
+ *  }
+ */
+router.get('/ads/:id', function(req, res, next) {
+  if (req.params.id == "random") {
+    // go to random route
+    next();
+    return;
+  }
+  AdSchema.findOne({"ad_id": req.params.id}, function(err, ad) {
+    if (err) {
+      res.status(500).json(
+        {
+          'message': 'Could not retrieve job ad.',
+          'details': err
+        });
+    } else {
+      res.status(200).json(ad);
+    }
+  })
+});
+
+/**
+ * @api {get} /ads/random Get a random job ad
+ * @apiName getRandomAd
+ * @apiGroup Ads
+ *
+ * @apiSuccess {Object} ad Job ad object
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  {
+ *    "_id": "56b0c8e0ec9666697274faf0",
+ *    "ad_id": 5524,
+ *    "title": "Senior Pricing Economist",
+ *    "content": "<p>We are now looking for a <strong>(Senior) Pricing
+ *                Economist</strong> to carry out price optimisation analysis
+ *                and to make recommendations for Lumia devices pricing [...]"
+ *  }
+ */
 router.get('/ads/random', function(req, res) {
   // count total ads and return 'amount' random ones
   AdSchema.count({}, function(err, count){
-    min = 0
-    max = count
-    var randomnumber = Math.floor(Math.random() * (max - min + 1)) + min;
-    AdSchema.findOne({"ad_id": randomnumber}, function(error, ad) {
-      res.json({'content': ad });
+    var rand = Math.floor(Math.random() * count) + 1;
+    AdSchema.findOne({"ad_id": rand}, function(err, ad) {
+      if (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not retrieve random job ad.',
+            'details': err
+          });
+      } else {
+        res.status(200).json(ad);
+      }
     })
   })
 });
 
-// GET /api/chunks/byId/:id
-//
-//   description: Retrieve a list with all chunks
-//   params:
-//     ad_id: Number
-//   returns: [{ <ChunkObject> }, ...]
-router.get('/chunks/byId/:id', function(req, res) {
-  ChunkSchema.find({_id: req.params.id }, function(err, chunks) {
+/**
+ * @api {get} /chunks/byAdId/:id Get chunks of an ad by ad_id
+ * @apiName getChunksByAdId
+ * @apiGroup Chunks
+ *
+ * @apiParam {Number} id Unique ad ID
+ *
+ * @apiSuccess {Object[]} chunks Array of chunk objects belonging to job ad
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  [
+ *    {
+ *      "_id": "56aba31a9b1c17c8c85260fc",
+ *      "chunk_id": 1975,
+ *      "ad_id": 100,
+ *      "content": "Our customer is looking for development lead to Espoo for IT
+ *                  Service Support Management (ITSSM) solution. This is a
+ *                  fix-term contract from December 2015 to June 2016."
+ *    },
+ *    ...
+ *  ]
+ */
+router.get('/chunks/byAdId/:id', function(req, res, next) {
+  if (req.params.id == "random") {
+    // go to random route
+    next();
+    return;
+  }
+  ChunkSchema.find({"ad_id": req.params.id }, function(err, chunks) {
     if (err) {
       res.status(500).json(
         {
-          'message': 'Could not retrieve any chunks.',
+          'message': 'Could not retrieve any chunks for ad.',
           'details': err
         });
     } else {
@@ -124,47 +211,78 @@ router.get('/chunks/byId/:id', function(req, res) {
   })
 });
 
-// GET /api/chunks/byAdId/random
-//
-//   description: Retrieve a list with all chunks for an ad
-//   params:
-//     ad_id: Number
-//   returns: [{ <ChunkObject> }, ...]
+/**
+ * @api {get} /chunks/byAdId/random Get chunks of a random ad
+ * @apiName getChunksByRandomAd
+ * @apiGroup Chunks
+ *
+ * @apiSuccess {Object[]} chunks Array of chunk objects belonging to the job ad
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ * {
+ *    'title': "Development Lead (ITSSM)",
+ *    'chunks': [
+ *      {
+ *        "_id": "56aba31a9b1c17c8c85260fc",
+ *        "chunk_id": 1975,
+ *        "ad_id": 100,
+ *        "content": "Our customer is looking for development lead to Espoo for
+ *                  IT Service Support Management (ITSSM) solution. This is a
+ *                  fix-term contract from December 2015 to June 2016."
+ *      },
+ *      ...
+ *    ]
+ * }
+ */
 router.get('/chunks/byAdId/random', function(req, res) {
   // count total ads and return 'amount' random ones
-  AdSchema.count({}, function(err, count){
-    min = 0
-    max = count
-    var randomnumber = Math.floor(Math.random() * (max - min + 1)) + min;
-    AdSchema.findOne({"ad_id": randomnumber}, function(error, ad) {
-      ChunkSchema.find({"ad_id": ad.ad_id }, function(error, chunks) {
-        res.json({
-          'title': ad.title,
-          'chunks': chunks });
-      })
+  AdSchema.count({}, function(err, count) {
+    var rand = Math.floor(Math.random() * count) + 1;
+    AdSchema.findOne({"ad_id": rand}, function(err, ad) {
+      if (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not retrieve random job ad.',
+            'details': err
+          });
+      } else {
+        ChunkSchema.find({"ad_id": ad.ad_id }, function(err, chunks) {
+          if (err) {
+            res.status(500).json(
+              {
+                'message': 'Could not retrieve chunks for random job ad.',
+                'details': err
+              });
+          } else {
+            res.json({
+              'title': ad.title,
+              'chunks': chunks
+            })
+          }
+        })
+      } // end else of err ads
     })
   })
 });
 
-// GET /api/chunks/byAdId/:id
-//
-//   description: Retrieve a list with all chunks for one ad
-//   params:
-//     ad_id: Number
-//   returns: [{ <ChunkObject> }, ...]
-router.get('/chunks/byAdId/:id', function(req, res) {
-  ChunkSchema.find({"ad_id": req.params.id }, function(error, chunks) {
-    res.json({'content': chunks });
-  })
-});
-
-// POST /api/tags
-//
-//   description: Add a new tag to a chunk
-//   body (form-data):
-//     chunk_id: Number
-//     content: String
-//   returns: { <TagObject> }
+/**
+ * @api {post} /tags Insert new tags
+ * @apiName postTags
+ * @apiGroup Tags
+ *
+ * @apiParam {form-data} tags Array with tags, sent as form-data (see example)
+ * @apiParamExample {json} Request-Example (formatted form-data):
+ *    tags[1][chunk_id]:56aba31b9b1c17c8c852ad9e
+ *    tags[1][content]:requirements
+ *    tags[2][chunk_id]:56aba31b9b1c17c8c852ad9f
+ *    tags[2][content]:title
+ *    ...
+ *
+ * @apiSuccess {String} Success message
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ * "1/19 tags were stored."
+ */
 router.post('/tags', function(req, res) {
 
   // Throw out empty tags and split multiple tags by comma
@@ -202,9 +320,9 @@ router.post('/tags', function(req, res) {
   // when all tags were successfully inserted give a response
   q.all(promises)
   .spread(function () {
-    console.info('%d/%d tags were stored.', tags.length, req.body.tags.length);
-    res.status(201).json(tags.length + '/' + req.body.tags.length
-    + ' tags were stored.');
+    var msg = tags.length + '/' + req.body.tags.length + ' tags were stored.';
+    log.info(msg);
+    res.status(201).json(msg);
   }, function (err) {
     res.status(500).json(
       {
@@ -215,10 +333,28 @@ router.post('/tags', function(req, res) {
 
 });
 
-// GET /api/tags
-//
-//   description: Retrieve a list with all tags
-//   returns: [{ <TagObject> }, ...]
+/**
+ * @api {get} /tags Get tags
+ * @apiDescription Retrieve all tags and the chunk IDs they are assigned to
+ * @apiName getTags
+ * @apiGroup Tags
+ *
+ * @apiSuccess {Object[]} tags Array of all tag objects
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  [
+ *    {
+ *      "_id": "56b0aa969b1c17c8c8547520",
+ *      "content": "introduction",
+ *      "__v": 0,
+ *      "updated": "2016-02-02T13:09:42.156Z",
+ *      "_chunks": [
+ *        "56aba31b9b1c17c8c8532b0d"
+ *      ]
+ *    },
+ *    ...
+ *  ]
+ */
 router.get('/tags', function(req, res) {
   TagSchema
     .find()
@@ -236,12 +372,33 @@ router.get('/tags', function(req, res) {
   })
 });
 
-// GET /api/tags/byContent/:query
-//
-//   description: Retrieve a list with all tags matching the query
-//   params:
-//     query: String
-//   returns: [{ <TagObject> }, ...]
+/**
+ * @api {get} /tags/byContent/:query Search for tags
+ * @apiDescription Retrieve all tags matching the query. The query only matches
+ *    tags with the same beginning (regex ^query).
+ * @apiName getTagsByContent
+ * @apiGroup Tags
+ *
+ * @apiParam {String} query Query to find matching tags
+ * @apiParamExample {String} query
+ *    intro
+ *
+ * @apiSuccess {Object[]} tags Array of all tag objects matching the query
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  [
+ *    {
+ *      "_id": "56b0aa969b1c17c8c8547520",
+ *      "content": "introduction",
+ *      "__v": 0,
+ *      "updated": "2016-02-02T13:09:42.156Z",
+ *      "_chunks": [
+ *        "56aba31b9b1c17c8c8532b0d"
+ *      ]
+ *    },
+ *    ...
+ *  ]
+ */
 router.get('/tags/byContent/:query', function(req, res) {
   var regexp = new RegExp("^"+ req.params.query.toLowerCase());
   TagSchema
@@ -265,14 +422,39 @@ router.get('/tags/byContent/:query', function(req, res) {
 });
 
 
-// GET /api/populatedTags
-//
-//   description: Retrieve a list with all tags
-//   returns: [{ <TagObject> }, ...]
-router.get('/populatedTags', function(req, res) {
+/**
+ * @api {get} /tags/populated Get tags populated with chunks
+ * @apiDescription Retrieve all tags, with each tags' chunk list populated with
+ *    with the corresponding chunk object
+ * @apiName getTagsPopulated
+ * @apiGroup Tags
+ *
+ * @apiSuccess {Object[]} tags Array of all tag objects matching the query
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *  [
+ *    {
+ *      "_id": "56b0f136ec96666972771b69",
+ *      "content": "healthcare",
+ *      "__v": 0,
+ *      "updated": "2016-02-02T18:11:02.626Z",
+ *      "_chunks": [
+ *        {
+ *        "_id": "56b0c8fcec9666697276c83e",
+ *        "chunk_id": 116887,
+ *        "ad_id": 5680,
+ *        "content": "Our profitable growth continues and the Hospital
+ *                    Division has a vacancy for an"
+ *        }
+ *      ]
+ *    },
+ *    ...
+ *  ]
+ */
+router.get('/tags/populated', function(req, res) {
   TagSchema
     .find()
-    // .limit(100)
+    // .limit(10)
     .populate('_chunks')
     .exec(function (err, tags) {
       if (err) {
@@ -287,8 +469,10 @@ router.get('/populatedTags', function(req, res) {
   })
 });
 
+// START THE SERVER
+// =============================================================================
 
 app.listen(port, function () {
-  console.log(PROJECT_NAME + ' v' + VERSION + ' app listening on port '
+  log.info(PROJECT_NAME + ' v' + VERSION + ' app listening on port '
     + port + '.');
 });

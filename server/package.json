@@ -1,12 +1,19 @@
 {
-  "name": "text-tagging-server",
+  "name": "thesis-tagger",
+  "description": "A tool for tagging chunked job ads",
   "version": "0.1.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cle-ment/thesis-tagger.git"
+  },
   "main": "server.js",
   "dependencies": {
-    "express": "~4.0.0",
-    "npmlog": "1.2.0",
+    "apidoc": "^0.14.0",
     "body-parser": "~1.0.1",
+    "express": "~4.0.0",
     "mongoose": "~4.3.7",
+    "npmlog": "1.2.0",
     "q": "1.4.1"
   }
 }
