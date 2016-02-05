@@ -25,7 +25,7 @@ log.level = 'verbose';
 // =============================================================================
 
 // define express app
-var app         = express();
+var app = express();
 
 // set static file dir for user generated files
 // such as their uploaded images
@@ -285,6 +285,12 @@ router.get('/chunks/byAdId/random', function(req, res) {
  */
 router.post('/tags', function(req, res) {
 
+  // submit timestamp
+  var timestamp = Date.now();
+
+  // get clients ip address
+  var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
   // Throw out empty tags and split multiple tags by comma
   tags = []
   for (var i = 0; i < req.body.tags.length; i++) {
@@ -306,8 +312,14 @@ router.post('/tags', function(req, res) {
     var deferred = q.defer();
     var tag = tags[i];
     TagSchema.findOneAndUpdate({content: tag.content},
-      { updated: Date.now(), $addToSet: { _chunks: tag.chunk_id } },
-      {upsert: true}, function (err, doc) {
+      { $addToSet:
+        { chunks:
+          { _chunk: tag.chunk_id,
+            updated: timestamp,
+            ip: ip
+          }
+        } },
+      { upsert: true}, function (err, doc) {
         if (err) {
           deferred.reject(err);
         } else {
@@ -320,13 +332,14 @@ router.post('/tags', function(req, res) {
   // when all tags were successfully inserted give a response
   q.all(promises)
   .spread(function () {
-    var msg = tags.length + '/' + req.body.tags.length + ' tags were stored.';
+    var msg = tags.length + ' tags for ' + req.body.tags.length
+              + ' chunks were stored.';
     log.info(msg);
     res.status(201).json(msg);
   }, function (err) {
     res.status(500).json(
       {
-        'message': 'Could not upsert tags.',
+        'message': 'Could not insert / update tags.',
         'details': err
       });
   });
@@ -339,26 +352,40 @@ router.post('/tags', function(req, res) {
  * @apiName getTags
  * @apiGroup Tags
  *
+ * @apiParam {Number} size Size of retrieved batch of tags (maximum tags 100)
+ * @apiParam {Number} page Offset, start retrieving from this batch/page number
+ * @apiParamExample {Number} size
+ *    size=10
+ * @apiParamExample {Number} page
+ *    page=2
+ *
  * @apiSuccess {Object[]} tags Array of all tag objects
  * @apiSuccessExample {json} Success-Response:
  *     HTTP/1.1 200 OK
- *  [
- *    {
- *      "_id": "56b0aa969b1c17c8c8547520",
- *      "content": "introduction",
- *      "__v": 0,
- *      "updated": "2016-02-02T13:09:42.156Z",
- *      "_chunks": [
- *        "56aba31b9b1c17c8c8532b0d"
- *      ]
- *    },
- *    ...
- *  ]
+ * [
+ *   {
+ *     "_id": "56b4d8e79b1c17c8c854752f",
+ *     "content": "title",
+ *     "__v": 0,
+ *     "chunks": [
+ *       {
+ *         "ip": "::1",
+ *         "_chunk": "56aba31c9b1c17c8c853a27d",
+ *         "_id": "56b4d8e776c75c1196905dfd",
+ *         "updated": "2016-02-05T17:16:23.103Z"
+ *       },
+ *       ...
+ *     ]
+ *   }
+  *]
  */
 router.get('/tags', function(req, res) {
+  var num_of_items = Math.min(req.query.size, 100) ;
+  var page = req.query.page
   TagSchema
     .find()
-    // .limit(100)
+    .skip(num_of_items * (page - 1))
+    .limit(num_of_items )
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(
@@ -373,15 +400,15 @@ router.get('/tags', function(req, res) {
 });
 
 /**
- * @api {get} /tags/byContent/:query Search for tags
+ * @api {get} /tags/byContent Search for tags
  * @apiDescription Retrieve all tags matching the query. The query only matches
  *    tags with the same beginning (regex ^query).
  * @apiName getTagsByContent
  * @apiGroup Tags
  *
- * @apiParam {String} query Query to find matching tags
- * @apiParamExample {String} query
- *    intro
+ * @apiParam {String} term Query parameter to find matching tags
+ * @apiParamExample {String} term
+ *    term=intro
  *
  * @apiSuccess {Object[]} tags Array of all tag objects matching the query
  * @apiSuccessExample {json} Success-Response:
@@ -399,11 +426,11 @@ router.get('/tags', function(req, res) {
  *    ...
  *  ]
  */
-router.get('/tags/byContent/:query', function(req, res) {
-  var regexp = new RegExp("^"+ req.params.query.toLowerCase());
+router.get('/tags/byContent', function(req, res) {
+  var regexp = new RegExp("^"+ req.query.term.toLowerCase());
   TagSchema
     .find({ content: regexp})
-    .limit()
+    .limit(5)
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(
@@ -429,33 +456,48 @@ router.get('/tags/byContent/:query', function(req, res) {
  * @apiName getTagsPopulated
  * @apiGroup Tags
  *
+ * @apiParam {Number} size Size of retrieved batch of tags (maximum tags 100)
+ * @apiParam {Number} page Offset, start retrieving from this batch/page number
+ * @apiParamExample {Number} size
+ *    size=10
+ * @apiParamExample {Number} page
+ *    page=2
+ *
  * @apiSuccess {Object[]} tags Array of all tag objects matching the query
  * @apiSuccessExample {json} Success-Response:
  *     HTTP/1.1 200 OK
- *  [
- *    {
- *      "_id": "56b0f136ec96666972771b69",
- *      "content": "healthcare",
- *      "__v": 0,
- *      "updated": "2016-02-02T18:11:02.626Z",
- *      "_chunks": [
- *        {
- *        "_id": "56b0c8fcec9666697276c83e",
- *        "chunk_id": 116887,
- *        "ad_id": 5680,
- *        "content": "Our profitable growth continues and the Hospital
- *                    Division has a vacancy for an"
- *        }
- *      ]
- *    },
- *    ...
- *  ]
+ * [
+ *   {
+ *     "_id": "56b4d8e79b1c17c8c854752f",
+ *     "content": "title",
+ *     "__v": 0,
+ *     "chunks": [
+ *       {
+ *         "ip": "::1",
+ *         "_chunk": {
+ *           "_id": "56aba31c9b1c17c8c853a27d",
+ *           "chunk_id": 84280,
+ *           "ad_id": 4000,
+ *           "content": "Our client Yandex is looking for a specialist to work
+ *                       with server and network hardware at its data centre in
+ *                       Mäntsälä. [...]"
+ *         },
+ *         "_id": "56b4d8e776c75c1196905dfd",
+ *         "updated": "2016-02-05T17:16:23.103Z"
+ *       },
+ *       ...
+ *     ]
+ *   }
+ * ]
  */
 router.get('/tags/populated', function(req, res) {
+  var num_of_items = Math.min(req.query.size, 100) ;
+  var page = req.query.page
   TagSchema
     .find()
-    // .limit(10)
-    .populate('_chunks')
+    .skip(num_of_items * (page - 1))
+    .limit(num_of_items )
+    .populate('chunks._chunk')
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(

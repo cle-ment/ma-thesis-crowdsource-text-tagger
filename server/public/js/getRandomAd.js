@@ -2,9 +2,9 @@
 function getRandomJobAd() {
   $(function() {
     $.ajax({
-      url: "http://" + window.location.hostname + ":8082/api/chunks/byAdId/random",
-      cache: false,
-      dataType: 'json'
+      url: "http://" + window.location.hostname
+           + ":8082/api/chunks/byAdId/random",
+      cache: false // avoid caching
     })
     .done(function( result ) {
       result.counter = 0;
