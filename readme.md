@@ -26,8 +26,3 @@ The jupyter notebook 'extractjobs.ipynb' includes the necessary steps to perform
 2. run 'npm install' in the 'server' directory to get the necessary dependencies
 3. run the server via 'node server.js' and access the interface via
    <http://localhost:8082/jobad-tagger/>
-
-## Post-processing
-
-The jupyter notebook 'post-processing.ipynb' contains steps to post process the
-data, though it still is work in progress.

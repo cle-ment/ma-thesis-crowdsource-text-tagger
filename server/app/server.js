@@ -56,12 +56,13 @@ if (DEVELOPMENT_MODE) {
 // =============================================================================
 
 // Connect to the db
-mongoose.connect('mongodb://localhost:27017/thesis'); // connect to our database
+mongoose.connect('mongodb://localhost:27017/thesis'); //connect to our database
 
 // get model schemas
 var ChunkSchema = require('./models/chunk.js');
 var AdSchema = require('./models/ad.js');
 var TagSchema = require('./models/tag.js');
+var SubmissionSchema = require('./models/submission.js');
 
 // ROUTER BASE SETUP
 // =============================================================================
@@ -71,7 +72,9 @@ var router = express.Router();
 
 // middleware to use for all requests
 router.use(function(req, res, next) {
-  log.http((new Date).toUTCString() + ' | ' + req.method + ' /api' + req.url);
+  var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  log.http((new Date).toUTCString() + ' | ' + req.method + ' /api' + req.url
+    + " | " + ip);
   next(); // make sure we go to the next routes and don't stop here
 });
 
@@ -86,15 +89,78 @@ app.use('/api', router);
 //    $> apidoc -i app/ -o ./public/apidoc/
 
 /**
- * @api {get} / Test the API
- * @apiName Test
- * @apiGroup Test
+ * @api {get} / Check the status of the API
+ * @apiName Status
+ * @apiGroup Meta
  *
  * @apiSuccess {String} message API status message
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ * {
+ *   "message": "thesis-tagger v0.1.0 API is up and running."
+ * }
  */
 router.get('/', function(req, res) {
   res.json({'message': PROJECT_NAME + ' v' + VERSION
             + ' API is up and running.' });
+});
+
+/**
+ * @api {get} /stats Get statistics
+ * @apiName Stats
+ * @apiGroup Meta
+ *
+ * @apiSuccess {Object} stats API stats
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ * {
+ *   "total_submissions": 2,
+ *   "total_tags": 3,
+ *   "total_tagged_ads": 2,
+ *   "total_ads": 6731
+ * }
+ */
+router.get('/stats', function(req, res) {
+
+  // total submissions
+  submissions = SubmissionSchema.count().then(function (count) {
+    return count;
+  })
+  // total tags
+  tags = TagSchema.count().then(function (count) {
+    return count;
+  })
+  // tagged job ads
+  tagged_ads = SubmissionSchema.find().distinct('ad_id').count()
+  .then(function(count) {
+    return count;
+  })
+  // total ads
+  ads = AdSchema.count()
+  .then(function(count) {
+    return count;
+  })
+
+  q.all([
+    submissions,
+    tags,
+    tagged_ads,
+    ads
+  ]).spread(function(total_submissions, total_tags, total_tagged_ads, total_ads) {
+    response = {
+      "total_submissions": total_submissions,
+      "total_tags": total_tags,
+      "total_tagged_ads": total_tagged_ads,
+      "total_ads": total_ads
+    }
+    res.status(200).json(response);
+  }, function () {
+    res.status(500).json(
+      {
+        'message': 'Could not get stats.',
+        'details': err
+      });
+  });
 });
 
 /**
@@ -285,9 +351,8 @@ router.get('/chunks/byAdId/random', function(req, res) {
  */
 router.post('/tags', function(req, res) {
 
-  // submit timestamp
+  // get timestamp
   var timestamp = Date.now();
-
   // get clients ip address
   var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
@@ -298,52 +363,83 @@ router.post('/tags', function(req, res) {
       req.body.tags[i].content = req.body.tags[i].content.replace(/,\s*$/, "");
       split_tags = req.body.tags[i].content.toLowerCase().split(', ');
       for (var j = 0; j < split_tags.length; j++) {
-        var appendTag = {}
+        var appendTag = {};
         appendTag.chunk_id = req.body.tags[i].chunk_id;
-        appendTag.content = split_tags[j]
-        tags.push(appendTag)
+        appendTag.content = split_tags[j];
+        tags.push(appendTag);
       }
     }
   }
 
-  // insert or update each tag with the new _chunks
-  promises = []
-  for (var i = 0; i < tags.length; i++) {
-    var deferred = q.defer();
-    var tag = tags[i];
-    TagSchema.findOneAndUpdate({content: tag.content},
-      { $addToSet:
-        { chunks:
-          { _chunk: tag.chunk_id,
-            updated: timestamp,
-            ip: ip
-          }
-        } },
-      { upsert: true}, function (err, doc) {
-        if (err) {
-          deferred.reject(err);
-        } else {
-          deferred.resolve(doc);
-        }
-    });
-    promises.push(deferred)
-  }
+  // find job ad for tags
+  getAdId = ChunkSchema.find({_id: tags[0].chunk_id})
+  getAdId.then(function(chunk_with_ad_id) {
 
-  // when all tags were successfully inserted give a response
-  q.all(promises)
-  .spread(function () {
-    var msg = tags.length + ' tags for ' + req.body.tags.length
-              + ' chunks were stored.';
-    log.info(msg);
-    res.status(201).json(msg);
-  }, function (err) {
+    // register new submission
+    var submission = new SubmissionSchema(
+      { ip: ip,
+        ad_id: chunk_with_ad_id.ad_id,
+        tag_count: tags.length,
+        updated: timestamp
+      });
+    submission.save().then(function (submission) {
+
+      // insert or update each tag with the new _chunks
+      promises = []
+      for (var i = 0; i < tags.length; i++) {
+        var deferred = q.defer();
+        var tag = tags[i];
+        TagSchema.findOneAndUpdate({content: tag.content},
+          { $addToSet:
+            { chunks:
+              { _chunk: tag.chunk_id,
+                _submission: submission._id,
+                updated: timestamp
+              }
+            } },
+          { upsert: true }, function (err, doc) {
+            if (err) {
+              deferred.reject(err);
+            } else {
+              deferred.resolve(doc);
+            }
+        });
+        promises.push(deferred)
+      }
+
+      // when all tags were successfully inserted give a response
+      q.all(promises)
+      .spread(function () {
+        var msg = tags.length + ' tags for ' + req.body.tags.length
+                  + ' chunks were stored.';
+        log.info(msg);
+        res.status(201).json(msg);
+      }, function (err) {
+        res.status(500).json(
+          {
+            'message': 'Could not insert / update tags.',
+            'details': err
+          });
+      });
+
+    // adding submission not successful
+    }, function() {
+      res.status(500).json(
+        {
+          'message': 'Could not add submission.',
+          'details': err
+        });
+    });
+
+  // getting ad id not successful
+  }, function functionName() {
     res.status(500).json(
       {
-        'message': 'Could not insert / update tags.',
+        'message': 'Could not retrieve job ad for chunks.',
         'details': err
       });
+      return;
   });
-
 });
 
 /**
@@ -369,7 +465,7 @@ router.post('/tags', function(req, res) {
  *     "__v": 0,
  *     "chunks": [
  *       {
- *         "ip": "::1",
+ *         "_submission": "56b9278c716e188daa094164",
  *         "_chunk": "56aba31c9b1c17c8c853a27d",
  *         "_id": "56b4d8e776c75c1196905dfd",
  *         "updated": "2016-02-05T17:16:23.103Z"
@@ -385,7 +481,7 @@ router.get('/tags', function(req, res) {
   TagSchema
     .find()
     .skip(num_of_items * (page - 1))
-    .limit(num_of_items )
+    .limit(num_of_items)
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(
@@ -448,9 +544,8 @@ router.get('/tags/byContent', function(req, res) {
   })
 });
 
-
 /**
- * @api {get} /tags/populated Get tags populated with chunks
+ * @api {get} /tags/populated Get populated tags (chunks/submissions)
  * @apiDescription Retrieve all tags, with each tags' chunk list populated with
  *    with the corresponding chunk object
  * @apiName getTagsPopulated
@@ -468,22 +563,25 @@ router.get('/tags/byContent', function(req, res) {
  *     HTTP/1.1 200 OK
  * [
  *   {
- *     "_id": "56b4d8e79b1c17c8c854752f",
+ *     "_id": "56b9278c9b1c17c8c8547530",
  *     "content": "title",
  *     "__v": 0,
  *     "chunks": [
  *       {
- *         "ip": "::1",
- *         "_chunk": {
- *           "_id": "56aba31c9b1c17c8c853a27d",
- *           "chunk_id": 84280,
- *           "ad_id": 4000,
- *           "content": "Our client Yandex is looking for a specialist to work
- *                       with server and network hardware at its data centre in
- *                       Mäntsälä. [...]"
+ *         "_submission": {
+ *           "_id": "56b9278c716e188daa094164",
+ *           "ip": "::1",
+ *           "__v": 0,
+ *           "updated": "2016-02-08T23:41:00.685Z"
  *         },
- *         "_id": "56b4d8e776c75c1196905dfd",
- *         "updated": "2016-02-05T17:16:23.103Z"
+ *         "_chunk": {
+ *           "_id": "56aba31d9b1c17c8c853f80a",
+ *           "chunk_id": 106181,
+ *           "ad_id": 5127,
+ *           "content": "Technician or bachelor degree in Civil Engineer"
+ *         },
+ *         "_id": "56b9278c716e188daa094165",
+ *         "updated": "2016-02-08T23:41:00.685Z"
  *       },
  *       ...
  *     ]
@@ -498,6 +596,7 @@ router.get('/tags/populated', function(req, res) {
     .skip(num_of_items * (page - 1))
     .limit(num_of_items )
     .populate('chunks._chunk')
+    .populate('chunks._submission')
     .exec(function (err, tags) {
       if (err) {
         res.status(500).json(

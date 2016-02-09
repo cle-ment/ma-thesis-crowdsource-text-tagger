@@ -5,9 +5,9 @@ var TagSchema   = new Schema({
   content: String,
   chunks: [
     {
-      ip: String,
-      updated: { type: Date, default: Date.now },
-      _chunk: { type: Schema.Types.ObjectId, ref: 'Chunk' }
+      _submission: { type: Schema.Types.ObjectId, ref: 'Submission' },
+      _chunk: { type: Schema.Types.ObjectId, ref: 'Chunk' },
+      updated: { type: Date, default: Date.now }
     }
   ]
 });
