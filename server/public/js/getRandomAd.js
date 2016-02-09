@@ -16,7 +16,7 @@ function getRandomJobAd() {
         $.Mustache.load('./templates/chunks.html')
         .done(function () {
           $('#jobad').mustache('chunklist', result, { method: 'html' });
-          initAutoComplete();
+          // initAutoComplete();
         });
       });
   });
