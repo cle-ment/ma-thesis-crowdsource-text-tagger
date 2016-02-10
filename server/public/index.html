@@ -293,6 +293,13 @@
     <!-- end body -->
 
     <script type="text/javascript">
+    // prevent form from being sent with pressing return
+    $('#tagsform').keypress(function(event){
+        if (event.keyCode == 10 || event.keyCode == 13)
+            event.preventDefault();
+      });
+    </script>
+    <script type="text/javascript">
 
       // initialize interface
       $(function() {
