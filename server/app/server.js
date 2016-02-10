@@ -1,6 +1,6 @@
 // CONSTANTS
 // =============================================================================
-var VERSION = '0.1.0';
+var VERSION = '0.2.0';
 var PROJECT_NAME = 'thesis-tagger';
 var DEVELOPMENT_MODE = false;
 var STANDARD_PORT = 8082;

@@ -19,26 +19,29 @@ $(function() {
 
         $('#message').hide();
         if (taggedAdsCounter == 1) {
-          $('#hintsRow').hide();
-          $('#exampleRow').hide();
-          $('#message').html("<p><strong>Thanks!!! &hearts;</strong>"
-            + " Your tags were saved. </p><p>I'm trying to collect as many tags"
-            + " as possible to better understand how people interpret these"
-            + " texts. So <strong>would be awesome if you could do another"
-            + " one ;)</strong>. Below there's a new job ad already prepared"
-            + " in case</p>");
-          $('#message').show();
+          $.Mustache.load('./templates/thanks1.html')
+          .done(function () {
+              var data = {time: Date.now()}
+              $('#message').mustache('thanks1', data, { method: 'html' });
+              $('#hintsRow').hide();
+              $('#exampleRow').hide();
+              $('#message').show();
+          });
         } else if (taggedAdsCounter <= 5) {
-          $('#message').html("<p><strong>Thanks again for the help! "
-            + "&hearts;</strong></p>"
-            + "<p>Ready for another one? There's a new ad "
-            + "for you below.</p>");
-          $('#message').show();
+          $.Mustache.load('./templates/thanks2.html')
+          .done(function () {
+            var data = {time: Date.now()}
+            $('#message').mustache('thanks2', data, { method: 'html' });
+            $('#message').show();
+          });
         } else if (taggedAdsCounter > 5) {
-          $('#message').html("<p><strong>Wow so many job ads tagged already!!!"
-            + "</strong>Thanks so much, I really appreciate your help!</p>"
-            + "<p>As always there's a new job ad below.</p>");
-          $('#message').show();
+          $.Mustache.load('./templates/thanks3.html')
+          .done(function () {
+            var data = {time: Date.now()}
+            $('#message').mustache('thanks3', data, { method: 'html' });
+            $('#message').show();
+
+          });
         }
         window.scrollTo(0, 0);
       }
