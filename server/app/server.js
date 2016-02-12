@@ -90,7 +90,7 @@ app.use('/api', router);
 
 /**
  * @api {get} / Check the status of the API
- * @apiName Status
+ * @apiName getMetaStatus
  * @apiGroup Meta
  *
  * @apiSuccess {String} message API status message
@@ -101,13 +101,14 @@ app.use('/api', router);
  * }
  */
 router.get('/', function(req, res) {
-  res.json({'message': PROJECT_NAME + ' v' + VERSION
-            + ' API is up and running.' });
+  res.json({
+    'status': PROJECT_NAME + ' v' + VERSION + ' API is up and running.'
+  });
 });
 
 /**
- * @api {get} /stats Get statistics
- * @apiName Stats
+ * @api {get} /meta/stats Get statistics
+ * @apiName getMetaStats
  * @apiGroup Meta
  *
  * @apiSuccess {Object} stats API stats
@@ -120,7 +121,7 @@ router.get('/', function(req, res) {
  *   "total_ads": 6731
  * }
  */
-router.get('/stats', function(req, res) {
+router.get('/meta/stats', function(req, res) {
 
   // total submissions
   submissions = SubmissionSchema.count().then(function (count) {
@@ -160,6 +161,52 @@ router.get('/stats', function(req, res) {
         'message': 'Could not get stats.',
         'details': err
       });
+  });
+});
+
+/**
+ * @api {get} /meta/winner Get winner (person with most submissions)
+ * @apiDescription Finds the email address that has made the most submissions
+ * @apiName getMetaWinner
+ * @apiGroup Meta
+ *
+ * @apiSuccess {Object} winner Winner email and number of submissions
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ * {
+ *    "winner": "john.doe@email.com",
+ *    "submissions": 12
+ * }
+ */
+router.get('/meta/winner', function(req, res) {
+
+  var max_count = 0
+  var max_email = 0
+
+  SubmissionSchema
+  .find({email: { $exists: true }})
+  .exec(function (err, submissions) {
+    if (err) {
+      res.status(500).json(
+        {
+          'message': 'Could not find submissions with email adresses.',
+          'details': err
+        });
+    } else {
+      for (var i = 0; i < submissions.length; i++) {
+        count = 0;
+        for (var j = 0; j < submissions.length; j++) {
+          if (submissions[j].email == submissions[i].email) {
+            count++
+          }
+        }
+        if (count > max_count) {
+          max_count = count
+          max_email = submissions[i].email
+        }
+      }
+      res.status(200).json({"winner": max_email, "submissions": max_count});
+    }
   });
 });
 
