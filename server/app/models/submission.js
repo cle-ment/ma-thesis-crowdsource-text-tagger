@@ -5,6 +5,7 @@ var SubmissionSchema   = new Schema({
   ip: String,
   ad_id: Number,
   tag_count: Number,
+  email: String,
   updated: { type: Date, default: Date.now }
 });
 

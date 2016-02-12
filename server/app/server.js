@@ -1,6 +1,6 @@
 // CONSTANTS
 // =============================================================================
-var VERSION = '0.2.1';
+var VERSION = '0.3.0';
 var PROJECT_NAME = 'thesis-tagger';
 var DEVELOPMENT_MODE = false;
 var STANDARD_PORT = 8082;
@@ -97,7 +97,7 @@ app.use('/api', router);
  * @apiSuccessExample {json} Success-Response:
  *     HTTP/1.1 200 OK
  * {
- *   "message": "thesis-tagger v0.1.0 API is up and running."
+ *   "message": "thesis-tagger v0.2.1 API is up and running."
  * }
  */
 router.get('/', function(req, res) {
@@ -336,8 +336,10 @@ router.get('/chunks/byAdId/random', function(req, res) {
  * @apiName postTags
  * @apiGroup Tags
  *
- * @apiParam {form-data} tags Array with tags, sent as form-data (see example)
+ * @apiParam {form-data} tags Array with tags, sent as form-data
+ *    and email address (see example)
  * @apiParamExample {json} Request-Example (formatted form-data):
+ *    email:john.doe@email.com
  *    tags[1][chunk_id]:56aba31b9b1c17c8c852ad9e
  *    tags[1][content]:requirements
  *    tags[2][chunk_id]:56aba31b9b1c17c8c852ad9f
@@ -371,15 +373,20 @@ router.post('/tags', function(req, res) {
     }
   }
 
+  // get email address
+  email = req.body.email || ""
+
   // find job ad for tags
   getAdId = ChunkSchema.find({_id: tags[0].chunk_id})
   getAdId.then(function(chunk_with_ad_id) {
+
 
     // register new submission
     var submission = new SubmissionSchema(
       { ip: ip,
         ad_id: chunk_with_ad_id.ad_id,
         tag_count: tags.length,
+        email: email,
         updated: timestamp
       });
     submission.save().then(function (submission) {
@@ -411,7 +418,7 @@ router.post('/tags', function(req, res) {
       q.all(promises)
       .spread(function () {
         var msg = tags.length + ' tags for ' + req.body.tags.length
-                  + ' chunks were stored.';
+                  + ' chunks were stored. ' + email;
         log.info(msg);
         res.status(201).json(msg);
       }, function (err) {
