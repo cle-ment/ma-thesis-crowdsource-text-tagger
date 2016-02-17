@@ -184,7 +184,7 @@ router.get('/meta/winner', function(req, res) {
   var max_email = 0
 
   SubmissionSchema
-  .find({email: { $exists: true }})
+  .find({email: { $exists: true, $ne: [] }})
   .exec(function (err, submissions) {
     if (err) {
       res.status(500).json(
